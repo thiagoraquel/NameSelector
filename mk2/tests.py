@@ -1,23 +1,7 @@
-import os
-from database import delete_name, get_all_entries, init_db, insert_name
-from engine import generate_name_with_db
-
-TEST_DB_FILE = "test_names.db"
-
-
-def setup_test_db():
-  """Sets up an isolated test database file, wiping any previous test runs."""
-  if os.path.exists(TEST_DB_FILE):
-    os.remove(TEST_DB_FILE)
-
-  init_db(TEST_DB_FILE)
-
-  # Insert precise test fixtures
-  insert_name("Legolas", "first_name", "male", "elf", "any", db_path=TEST_DB_FILE)
-  insert_name("Boran", "first_name", "male", "insect", "mantis", db_path=TEST_DB_FILE)
-  insert_name("UniversalHero", "first_name", "neutral", "any", "any", db_path=TEST_DB_FILE)
-
-  return TEST_DB_FILE
+from database import delete_name, get_all_entries, insert_name
+from engine import generate_name
+from test_db import cleanup_test_db, setup_test_db
+from test_helpers import format_debug_pool, get_matching_pool
 
 
 def run_tests():
@@ -29,8 +13,11 @@ def run_tests():
   passed = 0
   failed = 0
 
-  def assert_test(condition, test_name, expected=None, actual=None):
+  def assert_test(condition, test_name, expected=None, actual=None, debug_pool=None):
     nonlocal passed, failed
+    if debug_pool is not None:
+      print(f"     🔍 [Debug Pool Sample]: {format_debug_pool(debug_pool)}")
+
     if condition:
       print(f"  ✅ PASS: {test_name}")
       passed += 1
@@ -53,46 +40,47 @@ def run_tests():
   deleted = delete_name(target_id, db_path=db)
   assert_test(deleted, "Database successfully deletes an entry by ID")
 
-  # --- TEST 3: RETRIEVE / POSITIVE TEST ---
-  # Elves can match "Legolas" or universal names like "UniversalHero" due to 'any'
-  elf_slot = [{"species": "elf", "sub_species": "any"}]
-  result = generate_name_with_db("single", "male", elf_slot, db_path=db)
-  valid_expected = ["Legolas", "UniversalHero"]
+  # --- TEST 3: Generate first name with subspecies match ---
+  cat, gender, slots = "first_name", "female", [{"species": "insect", "sub_species": "spider"}]
+  generated_name = generate_name(cat, gender, slots, db_path=db)
+  valid_pool = get_matching_pool(db, cat, gender, slots)
   assert_test(
-      result in valid_expected,
-      "Correctly retrieves a valid Elf-compatible name",
-      expected=f"One of {valid_expected}",
-      actual=result
+      generated_name in valid_pool, 
+      "Generate common first name for female insect spider",
+      expected=f"One of {valid_pool}",
+      actual=generated_name,
+      debug_pool=valid_pool
   )
 
-  # --- TEST 4: NEGATIVE TEST (Species isolation) ---
-  # Asking strictly for an insect sub-species should NOT return an elf-exclusive name like "Legolas"
-  insect_slot = [{"species": "insect", "sub_species": "mantis"}]
-  result_insect = generate_name_with_db("single", "male", insect_slot, db_path=db)
-  # UniversalHero has 'any' so it could appear, but "Legolas" (species: elf) must NEVER appear here.
+  # --- TEST 4: Generate second name with subspecies match ---
+  cat, gender, slots = "second_name", "neutral", [{"species": "insect", "sub_species": "spider"}]
+  generated_second_name = generate_name(cat, gender, slots, db_path=db)
+  valid_pool = get_matching_pool(db, cat, gender, slots)
   assert_test(
-      result_insect != "Legolas",
-      "Negative Test: Elf-exclusive names do not leak into strict Insect requests",
-      expected="Anything except 'Legolas'",
-      actual=result_insect
+      generated_second_name in valid_pool, 
+      "Generate common second name for neutral insect spider",
+      expected=f"One of {valid_pool}",
+      actual=generated_second_name,
+      debug_pool=valid_pool
   )
 
-  # --- TEST 5: UNIVERSAL WILDCARD TEST (`any`) ---
-  universal_slot = [{"species": "dwarf", "sub_species": "any"}]
-  result_univ = generate_name_with_db("single", "neutral", universal_slot, db_path=db)
+  # --- TEST 5: Generate full name with subspecies match ---
+  cat, gender, slots = "full_name", "female", [{"species": "insect", "sub_species": "mantis"}]
+  generated_full_name = generate_name(cat, gender, slots, db_path=db)
+  valid_pool = get_matching_pool(db, cat, gender, slots)
   assert_test(
-      result_univ == "UniversalHero",
-      "Universal wildcard (any/any) matches unknown species requests",
-      expected="UniversalHero",
-      actual=result_univ
+      generated_full_name in valid_pool, 
+      "Generate common full name for female insect mantis",
+      expected=f"One of {valid_pool}",
+      actual=generated_full_name,
+      debug_pool=valid_pool
   )
 
   print("\n----------------------------------------")
   print(f"📊 Test Results: {passed} Passed, {failed} Failed.")
   print("========================================\n")
 
-  if os.path.exists(TEST_DB_FILE):
-    os.remove(TEST_DB_FILE)
+  cleanup_test_db()
 
 
 if __name__ == "__main__":
