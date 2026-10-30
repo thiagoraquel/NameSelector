@@ -1,0 +1,109 @@
+import os
+import sqlite3
+
+DEFAULT_DB_FILE = "worldbuilding_names.db"
+
+
+def get_connection(db_path=DEFAULT_DB_FILE):
+  """Returns a connection to the specified SQLite database (file or :memory:)."""
+  return sqlite3.connect(db_path)
+
+
+def init_db(db_path=DEFAULT_DB_FILE):
+  """Initializes the SQLite database and populates initial seed data if empty."""
+  conn = get_connection(db_path)
+  cursor = conn.cursor()
+
+  cursor.execute("""
+        CREATE TABLE IF NOT EXISTS names (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL,
+            gender TEXT NOT NULL,
+            species TEXT NOT NULL,
+            sub_species TEXT NOT NULL
+        )
+    """)
+
+  cursor.execute("SELECT COUNT(*) FROM names")
+  if cursor.fetchone()[0] == 0 and db_path == DEFAULT_DB_FILE:
+    seed_data = [
+        ("Alicia", "first_name", "female", "elf", "any"),
+        ("Sagarada", "second_name", "female", "elf", "any"),
+        ("Louvadio", "first_name", "male", "insect", "mantis"),
+        ("Garra", "second_name", "neutral", "insect", "any"),
+        ("Thula Tarantula", "full_name", "female", "insect", "spider,ant"),
+        ("Tom", "first_name", "male", "any", "any"),
+    ]
+    cursor.executemany(
+        """
+            INSERT INTO names (name, category, gender, species, sub_species)
+            VALUES (?, ?, ?, ?, ?)
+        """,
+        seed_data,
+    )
+    conn.commit()
+
+  conn.close()
+
+
+def get_metadata_lists(db_path=DEFAULT_DB_FILE):
+  conn = get_connection(db_path)
+  cursor = conn.cursor()
+
+  cursor.execute("SELECT DISTINCT gender FROM names")
+  genders = [row[0] for row in cursor.fetchall()]
+
+  cursor.execute("SELECT DISTINCT species FROM names")
+  raw_species = [row[0] for row in cursor.fetchall()]
+  species_set = set()
+  for s in raw_species:
+    for sp in s.split(","):
+      species_set.add(sp.strip())
+
+  cursor.execute("SELECT DISTINCT sub_species FROM names")
+  raw_subs = [row[0] for row in cursor.fetchall()]
+  sub_species_set = set()
+  for sub in raw_subs:
+    for ss in sub.split(","):
+      sub_species_set.add(ss.strip())
+
+  conn.close()
+  return list(genders), list(species_set), list(sub_species_set)
+
+
+def get_all_entries(db_path=DEFAULT_DB_FILE):
+  conn = get_connection(db_path)
+  cursor = conn.cursor()
+  cursor.execute(
+      "SELECT id, name, category, gender, species, sub_species FROM names"
+  )
+  rows = cursor.fetchall()
+  conn.close()
+  return rows
+
+
+def insert_name(
+    name, category, gender, species, sub_species, db_path=DEFAULT_DB_FILE
+):
+  conn = get_connection(db_path)
+  cursor = conn.cursor()
+  cursor.execute(
+      """
+        INSERT INTO names (name, category, gender, species, sub_species)
+        VALUES (?, ?, ?, ?, ?)
+    """,
+      (name, category, gender, species, sub_species),
+  )
+  conn.commit()
+  conn.close()
+
+
+def delete_name(name_id, db_path=DEFAULT_DB_FILE):
+  conn = get_connection(db_path)
+  cursor = conn.cursor()
+  cursor.execute("DELETE FROM names WHERE id = ?", (name_id,))
+  conn.commit()
+  rows_affected = cursor.rowcount
+  conn.close()
+  return rows_affected > 0
