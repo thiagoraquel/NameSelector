@@ -1,70 +1,70 @@
-# 🏷️ Projeto: Selecionador Procedural de Nomes (Worldbuilding)
+# 🏷️ Project: Procedural Name Selector (Worldbuilding)
 
-## 📖 Introdução
-Este projeto consiste em um **sistema selecionador e misturador (mix-and-match)** de nomes próprios curados manualmente, voltado para exercícios de worldbuilding (criação de universos ficcionais, espécies, raças e localidades). 
+## 📖 Introduction
+This project consists of a **mix-and-match name selection system** using manually curated names for worldbuilding exercises (creating fictional universes, species, races, and locations). 
 
-O sistema foca em **preservar 100% a integridade estética da curadoria humana**, utilizando um banco de dados estruturado com metadados para combinar nomes de forma inteligente, respeitando critérios de gênero, formatação estrutural, hierarquia biológica/cultural e hibridismo.
-
----
-
-## ⚙️ Arquitetura Geral do Sistema
-1. **Camada de Dados:** O núcleo do projeto. Armazena os nomes curados associados a metadados rigorosos (gênero, categoria de nome e vínculos taxonômicos).
-2. **Camada de Decisão:** Recebe os parâmetros de entrada desejados pelo usuário (ex: tipo de indivíduo, espécie(s), sub-espécie(s), gênero, formato desejado).
-3. **Camada de Algoritmo:** Realiza a seleção probabilística dentro do escopo filtrado, cruzando as regras de taxonomia e hibridismo.
+The system focuses on **preserving 100% of the human curation's aesthetic integrity** by using a structured database with rich metadata to combine names intelligently. It respects criteria such as gender, structural formatting, biological/cultural hierarchy, and hybridization.
 
 ---
 
-## 📐 Regras de Definição e Estrutura de Dados
-
-### 1. Categorias de Nomes (Formato de Armazenamento)
-O banco de dados armazena os nomes estritamente em três categorias principais:
-* **Primeiro Nome:** Uma entrada de palavra única.
-* **Segundo Nome:** Uma entrada de palavra única (sobrenome ou cognome).
-* **Nome Completo:** Uma entrada atômica e única (uma linha) contendo **obrigatoriamente duas palavras**. Ele é tratado como um bloco verídico por si só, evitando decomposições automáticas que inflariam os bancos de primeiro/segundo nome.
-
-### 2. Regras de Geração (Saída do Seletor)
-Com base na decisão do sistema:
-* **Nomes de uma palavra:** Podem ser gerados **apenas** utilizando opções da categoria *Primeiro Nome*.
-* **Nomes de duas palavras:** O seletor escolhe entre duas vias:
-  1. A combinação de `Primeiro Nome` + `Segundo Nome`.
-  2. A seleção direta de um `Nome Completo` atômico pré-cadastrado.
-
-### 3. Gêneros
-Cada entrada de nome é vinculada a um gênero específico, extensível conforme o worldbuilding evolui:
-* Masculino
-* Feminino
-* Hermafrodita
-* Neutro (indeterminado / unissex)
+## ⚙️ General System Architecture
+1. **Data Layer:** The core of the project. Stores curated names associated with strict metadata (gender, name category, and taxonomic linkages).
+2. **Decision Layer:** Receives input parameters specified by the user (e.g., individual type, species, sub-species, gender, desired format).
+3. **Algorithm Layer:** Performs probabilistic selection within the filtered scope, cross-referencing taxonomy and hybridization rules.
 
 ---
 
-## 🧬 Hierarquia Taxonômica, Escopo e Cardinalidade
+## 📐 Rules of Definition and Data Structure
 
-Cada nome cadastrado no banco possui obrigatoriamente **uma ou duas Espécies (macro)** e **uma ou duas Sub-espécies** associadas. Isso permite modelar desde nomes simples até títulos heróicos ou nomes completos exclusivos de híbridos específicos (ex: um nome com 1 espécie e 2 sub-espécies como *gafanhoto + muriçoca*, ou 2 espécies e 2 sub-espécies como *raposa + borboleta*).
+### 1. Name Categories (Storage Format)
+The database strictly stores names across three main categories:
+* **First Name:** A single-word entry.
+* **Second Name:** A single-word entry (surname or cognomen).
+* **Full Name:** An atomic, single-line entry containing **strictly two words**. It is treated as a complete block on its own, avoiding automatic decomposition that would artificially inflate the first/second name pools.
 
-### O Curinga `any`:
-* **Sub-espécie como `"any"`:** Qualquer sub-espécie pertencente àquela espécie macro pode utilizar o nome.
-* **Espécie como `"any"`:** O nome é universal, podendo ser utilizado por **literalmente qualquer indivíduo**, inclusive em contextos híbridos.
+### 2. Generation Rules (Selector Output)
+Based on the system's decision:
+* **One-word names:** Generated **exclusively** using options from the *First Name* category.
+* **Two-word names:** The selector chooses between two paths:
+  1. Combining a `First Name` + `Second Name`.
+  2. Selecting a pre-registered, atomic `Full Name` directly.
+
+### 3. Genders
+Each name entry is linked to a specific gender, extensible as worldbuilding grows:
+* Male
+* Female
+* Hermaphrodite
+* Neutral (undetermined / unisex)
 
 ---
 
-## 🔄 Regras de Validação e Atribuição Cruzada
+## 🧬 Taxonomic Hierarchy, Scope, and Cardinality
 
-Um nome pode ser atribuído a um indivíduo desde que os componentes taxonômicos do nome **contenham** as sub-espécies/espécies correspondentes ao indivíduo. 
+Each name registered in the database must be linked to **one or two Species (macro)** and **one or two Sub-species**. This allows modeling everything from simple names to heroic titles or full names exclusive to specific hybrids (e.g., a name with 1 species and 2 sub-species like *grasshopper + gnat*, or 2 species and 2 sub-species like *fox + butterfly*).
 
-* **Regra de Acesso Amplo:** Um híbrido (ex: *Louva-deus + Aranha*) pode utilizar legitimamente:
-  1. Nomes genéricos (`any`).
-  2. Nomes pertencentes exclusivamente à sub-espécie *Louva-deus*.
-  3. Nomes pertencentes exclusivamente à sub-espécie *Aranha*.
-  4. Nomes exclusivos da fusão híbrida *Louva-deus + Aranha*.
+### The `any` Wildcard:
+* **Sub-species as `"any"`:** Any sub-species belonging to that macro species can use the name.
+* **Species as `"any"`:** The name is universal and can be used by **literally any individual**, including in hybrid contexts.
 
 ---
 
-## ⚗️ Lógica de Seleção: Indivíduos Comuns vs. Híbridos (Incluindo Híbridos Puros)
+## 🔄 Validation Rules and Cross-Attribution
 
-A Camada de Decisão lida com diferentes perfis de input para a geração:
+A name can be assigned to an individual as long as the taxonomic components of the name **contain** the sub-species/species corresponding to that individual.
 
-1. **Indivíduo Comum:** O usuário configura o seletor com apenas uma slot de Espécie/Sub-espécie. O algoritmo buscará nomes compatíveis apenas com aquele escopo único e com os genéricos (`any`).
-2. **Indivíduo Híbrido (Misto ou Puro):** O usuário configura o seletor fornecendo **duas slots** de Espécie/Sub-espécie.
-   * **Híbridos Mistos (Espécies diferentes):** Ex: *Aranha + Formiga*. O sistema pode buscar nomes exclusivos dessa combinação exata, ou puxar partes independentes de cada uma das metades parentais.
-   * **Híbridos Puros (Mesma sub-espécie duplicada):** Ex: *Aranha + Aranha*. Representa indivíduos raros com poderes únicos. Na camada de dados, eles não exigem uma estrutura separada: o seletor processará as duas slots como sendo de Aranha, buscando nomes daquela sub-espécie ou genéricos. Caso uma combinação pura não faça sentido na lore (ex: *Humano + Humano*), o sistema simplesmente degrada a seleção para o comportamento de um indivíduo comum de um gene só."# NameSelector" 
+* **Broad Access Rule:** A hybrid (e.g., *Praying Mantis + Spider*) can legitimately use:
+  1. Generic names (`any`).
+  2. Names belonging exclusively to the *Praying Mantis* sub-species.
+  3. Names belonging exclusively to the *Spider* sub-species.
+  4. Names exclusive to the hybrid fusion *Praying Mantis + Spider*.
+
+---
+
+## ⚗️ Selection Logic: Standard Individuals vs. Hybrids (Including Pure Hybrids)
+
+The Decision Layer handles different input profiles for generation:
+
+1. **Standard Individual:** The user configures the selector with a single Species/Sub-species slot. The algorithm searches for names compatible only with that single scope and generics (`any`).
+2. **Hybrid Individual (Mixed or Pure):** The user configures the selector providing **two slots** for Species/Sub-species.
+   * **Mixed Hybrids (Different species):** E.g., *Spider + Ant*. The system can search for names exclusive to that exact combination or draw independent parts from each parental half.
+   * **Pure Hybrids (Same sub-species duplicated):** E.g., *Spider + Spider*. Represents rare individuals with unique powers. In the data layer, they do not require a separate structure: the selector processes both slots as Spider, drawing names from that sub-species or generics. If a pure combination makes no sense in lore (e.g., *Human + Human*), the system simply degrades selection to the behavior of a single-gene standard individual.
