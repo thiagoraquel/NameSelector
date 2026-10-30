@@ -1,5 +1,6 @@
-from database import get_all_entries, get_metadata_lists, insert_name
+from database import delete_name, get_all_entries, get_metadata_lists, insert_name
 from engine import generate_name
+from tests import run_tests
 
 
 def prompt_choice(prompt_text, options):
@@ -23,8 +24,6 @@ def add_name_cli():
   categories = ["first_name", "second_name", "full_name"]
   category = prompt_choice("Select Category:", categories)
 
-  # Only unpack genders since species/subs aren't needed here, 
-  # and deduplicate the list to prevent repeated options.
   genders, _, _ = get_metadata_lists()
   gender_options = list(dict.fromkeys(genders + ["neutral", "any"]))
   gender = prompt_choice("Select Gender:", gender_options)
@@ -40,6 +39,30 @@ def add_name_cli():
 
   insert_name(name, category, gender, species, sub_species)
   print(f"✅ Successfully added '{name}' to the database!")
+
+
+def delete_name_cli():
+  print("\n--- Delete a Name ---")
+  rows = get_all_entries()
+  if not rows:
+    print("Database is empty. Nothing to delete.")
+    return
+
+  view_all_entries_cli()
+  try:
+    name_id = int(
+        input("Enter the ID of the name you want to delete (or 0 to cancel): ")
+        .strip()
+    )
+    if name_id == 0:
+      return
+    success = delete_name(name_id)
+    if success:
+      print(f"🗑️ Successfully deleted entry with ID {name_id}.")
+    else:
+      print(f"❌ No entry found with ID {name_id}.")
+  except ValueError:
+    print("❌ Invalid ID format. Please enter a number.")
 
 
 def view_all_entries_cli():
