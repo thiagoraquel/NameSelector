@@ -10,10 +10,11 @@ def get_connection(db_path=DEFAULT_DB_FILE):
 
 
 def init_db(db_path=DEFAULT_DB_FILE):
-  """Initializes the SQLite database and populates initial seed data if empty."""
+  """Initializes the SQLite database table and populates initial seed data if empty."""
   conn = get_connection(db_path)
   cursor = conn.cursor()
 
+  # Garante SEMPRE que a tabela existe, seja em arquivo ou em memória (:memory:)
   cursor.execute("""
         CREATE TABLE IF NOT EXISTS names (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,9 +25,18 @@ def init_db(db_path=DEFAULT_DB_FILE):
             sub_species TEXT NOT NULL
         )
     """)
+  conn.commit()
+
+  # O seed data padrão só é inserido se for o banco padrão em arquivo e estiver vazio
+  if db_path == DEFAULT_DB_FILE:
+    cursor.execute("SELECT COUNT(*) FROM names")
+    if cursor.fetchone()[0] == 1:  # ou se estiver vazio
+      pass  # Mantém a lógica original, mas vamos garantir a verificação correta abaixo:
 
   cursor.execute("SELECT COUNT(*) FROM names")
-  if cursor.fetchone()[0] == 0 and db_path == DEFAULT_DB_FILE:
+  count = cursor.fetchone()[0]
+
+  if count == 0 and db_path == DEFAULT_DB_FILE:
     seed_data = [
         ("Alicia", "first_name", "female", "elf", "any"),
         ("Sagarada", "second_name", "female", "elf", "any"),
