@@ -46,12 +46,14 @@ class WorldbuildingGUI:
     frame.pack(fill="both", expand=True, padx=15, pady=15)
 
     # 1. Format / Category Selection
+    # 1. Format / Category Selection (Added "any" option)
     ttk.Label(frame, text="Name Format / Mode:").grid(
         row=0, column=0, sticky="w", pady=5
     )
     self.gen_category = ttk.Combobox(
         frame,
         values=[
+            "any",
             "single_mode",
             "double_mode",
             "first_name",
@@ -61,7 +63,7 @@ class WorldbuildingGUI:
         state="readonly",
     )
     self.gen_category.grid(row=0, column=1, sticky="ew", pady=5)
-    self.gen_category.set("single_mode")
+    self.gen_category.set("any")
 
     # 2. Gender Selection
     ttk.Label(frame, text="Gender Target:").grid(

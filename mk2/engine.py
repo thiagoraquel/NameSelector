@@ -28,7 +28,6 @@ def generate_name(
     db_species_list = [s.strip() for s in db_species.split(",")]
     db_subs_list = [s.strip() for s in db_subs.split(",")]
 
-    # Classify entry into inheritance tiers based on user slots
     is_global = "any" in db_species_list and "any" in db_subs_list
 
     is_species_generic = False
@@ -46,7 +45,6 @@ def generate_name(
       if matches_taxonomy(db_species_list, db_subs_list, user_slots):
         is_subspecies_specific = True
 
-    # Apply user checkbox tier filters
     if is_global and not allow_global:
       continue
     if is_species_generic and not allow_species_generic:
@@ -60,40 +58,52 @@ def generate_name(
       ):
         valid_entries.append({"name": name, "category": category})
 
+  # Pre-calculate pools to support "any" format selection intelligently
+  first_pool = [e for e in valid_entries if e["category"] == "first_name"]
+  second_pool = [e for e in valid_entries if e["category"] == "second_name"]
+  full_pool = [e for e in valid_entries if e["category"] == "full_name"]
+
+  # If format is "any", randomly choose among formats that actually have matching names
+  if format_type == "any":
+    available_modes = []
+    if first_pool:
+      available_modes.append("first_name")
+    if second_pool:
+      available_modes.append("second_name")
+    if full_pool:
+      available_modes.append("full_name")
+    if first_pool or second_pool:
+      available_modes.append("single_mode")
+    if (first_pool and second_pool) or full_pool:
+      available_modes.append("double_mode")
+
+    if not available_modes:
+      return "⚠️ No matching names found for these criteria."
+    format_type = random.choice(available_modes)
+
   # --- SELECTION LOGIC BASED ON THE 5 FORMAT TYPES ---
   if format_type == "first_name":
-    pool = [e for e in valid_entries if e["category"] == "first_name"]
-    if not pool:
+    if not first_pool:
       return "⚠️ No matching First Name found for these criteria."
-    return random.choice(pool)["name"]
+    return random.choice(first_pool)["name"]
 
   elif format_type == "second_name":
-    pool = [e for e in valid_entries if e["category"] == "second_name"]
-    if not pool:
+    if not second_pool:
       return "⚠️ No matching Second Name found for these criteria."
-    return random.choice(pool)["name"]
+    return random.choice(second_pool)["name"]
 
   elif format_type == "full_name":
-    pool = [e for e in valid_entries if e["category"] == "full_name"]
-    if not pool:
+    if not full_pool:
       return "⚠️ No matching Full Name found for these criteria."
-    return random.choice(pool)["name"]
+    return random.choice(full_pool)["name"]
 
   elif format_type == "single_mode":
-    pool = [
-        e
-        for e in valid_entries
-        if e["category"] in ["first_name", "second_name"]
-    ]
-    if not pool:
+    single_pool = first_pool + second_pool
+    if not single_pool:
       return "⚠️ No matching single names found for these criteria."
-    return random.choice(pool)["name"]
+    return random.choice(single_pool)["name"]
 
   elif format_type == "double_mode":
-    first_pool = [e for e in valid_entries if e["category"] == "first_name"]
-    second_pool = [e for e in valid_entries if e["category"] == "second_name"]
-    full_pool = [e for e in valid_entries if e["category"] == "full_name"]
-
     choices = []
     if first_pool and second_pool:
       choices.append("combination")
