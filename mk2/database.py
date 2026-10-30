@@ -117,3 +117,21 @@ def delete_name(name_id, db_path=DEFAULT_DB_FILE):
   rows_affected = cursor.rowcount
   conn.close()
   return rows_affected > 0
+
+def get_sub_species_for_species(species_name, db_path=DEFAULT_DB_FILE):
+  """Returns a unique list of sub-species associated with a specific species."""
+  conn = get_connection(db_path)
+  cursor = conn.cursor()
+  cursor.execute("SELECT species, sub_species FROM names")
+  rows = cursor.fetchall()
+  conn.close()
+
+  subs_set = set()
+  for db_sp, db_sub in rows:
+    db_species_list = [s.strip() for s in db_sp.split(",")]
+    # If the target species is part of this entry's species list (or 'any')
+    if species_name in db_species_list or "any" in db_species_list:
+      for sub in db_sub.split(","):
+        subs_set.add(sub.strip())
+        
+  return list(subs_set)
