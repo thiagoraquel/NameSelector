@@ -13,9 +13,15 @@ def get_matching_pool(db_path, category, gender, user_slots):
 
   pool = []
   for name, cat, g, sp, sub in rows:
-    if cat != category:
+    # If category is 'any', accept all categories; otherwise match exact category
+    if category != "any" and cat != category:
       continue
-    gender_match = (g == gender or g == "neutral" or g == "any" or gender == "any")
+    
+    gender_match = (
+        gender.lower() in ["any", "neutral"] or
+        g.lower() in ["any", "neutral"] or
+        g.lower() == gender.lower()
+    )
     if not gender_match:
       continue
     
@@ -27,9 +33,46 @@ def get_matching_pool(db_path, category, gender, user_slots):
   return pool
 
 
+def get_combined_double_pool(db_path, gender, user_slots):
+  """Computes all valid double-name options (Full names + First+Second combinations)."""
+  fulls = get_matching_pool(db_path, "full_name", gender, user_slots)
+  firsts = get_matching_pool(db_path, "first_name", gender, user_slots)
+  seconds = get_matching_pool(db_path, "second_name", gender, user_slots)
+  
+  combinations = [f"{f} {s}" for f in firsts for s in seconds]
+  return fulls + combinations
+
+
+def is_valid_format_any_result(db_path, gender, user_slots, result_name):
+  """Validates that a result from format='any' is a legal single, full, or combined name."""
+  firsts = get_matching_pool(db_path, "first_name", gender, user_slots)
+  seconds = get_matching_pool(db_path, "second_name", gender, user_slots)
+  fulls = get_matching_pool(db_path, "full_name", gender, user_slots)
+
+  if result_name in firsts or result_name in seconds or result_name in fulls:
+    return True
+
+  parts = result_name.split(" ", 1)
+  if len(parts) == 2:
+    if parts[0] in firsts and parts[1] in seconds:
+      return True
+
+  return False
+
+
 def format_debug_pool(pool):
   """Returns a randomized sample of up to 10 matching names for deep test debugging."""
   sample_pool = list(pool)
   random.shuffle(sample_pool)
   capped = sample_pool[:10]
   return f"{capped} (Total matching entries found: {len(pool)})"
+
+def get_any_format_pool(db_path, gender, user_slots):
+  """Computes every possible unique output (single names + double names + combinations) for format='any'."""
+  firsts = get_matching_pool(db_path, "first_name", gender, user_slots)
+  seconds = get_matching_pool(db_path, "second_name", gender, user_slots)
+  fulls = get_matching_pool(db_path, "full_name", gender, user_slots)
+  combinations = [f"{f} {s}" for f in firsts for s in seconds]
+  
+  # Return unique set of all possible generation outcomes
+  return list(set(firsts + seconds + fulls + combinations))

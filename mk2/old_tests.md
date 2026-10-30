@@ -32,15 +32,6 @@
       actual=result_univ
   )
 
-
-
-
-
-  # Test 6: Generate common name on Single Mode
-
-
-  # Test 7: Generate common name on Double Mode
-
   # Test 8: Generate common name with no species matches
   generated_no_match = generate_name_with_db("single", "male", [{"species": "void", "sub_species": "any"}], db_path=db)
   assert_test(generated_no_match is None, "Generate common name with no species matches")
@@ -49,18 +40,6 @@
   generated_no_match = generate_name_with_db("single", "male", [{"species": "void", "sub_species": "void"}], db_path=db)
   assert_test(generated_no_match is None, "Generate common name with no species matches and no subspecies matches")
 
-  # Test 10: Generate any common name ('any' species and 'any' subspecies)
-  generated_any = generate_name_with_db("single", "male", [{"species": "any", "sub_species": "any"}], db_path=db)
-  assert_test(generated_any in ["Beto", "Besouro"], "Generate any common name with 'any' species and 'any' subspecies")
-
 
   #insert_name("Beto", "first_name", "male", "insect", "rhino beetle", db_path=TEST_DB_FILE)
   #insert_name("Besouro", "second_name", "neutral", "insect", "any", db_path=TEST_DB_FILE)
-
-  # Generate any first name
-  # Generate any second name
-  # Generate any full name
-  # Generate any single name
-  # Generate any double name
-  # Generate any format name (I forgot to add the any format to category)
-  # Generate any male name

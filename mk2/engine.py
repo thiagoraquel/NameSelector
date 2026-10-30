@@ -14,17 +14,22 @@ def generate_name(
   conn = get_connection(db_path)
   cursor = conn.cursor()
 
-  gender_condition = (
-      f"(gender = '{gender}' OR gender = 'neutral' OR gender = 'any')"
-  )
-  query = f"SELECT id, name, category, species, sub_species FROM names WHERE {gender_condition}"
+  # Neutral and Any act as universal/asexual categories returning all names
+  if gender.lower() in ["any", "neutral"]:
+    gender_condition = "1=1"
+  else:
+    gender_condition = (
+        f"(gender = '{gender}' OR gender = 'neutral' OR gender = 'any')"
+    )
+
+  query = f"SELECT id, name, category, gender, species, sub_species FROM names WHERE {gender_condition}"
   cursor.execute(query)
   all_entries = cursor.fetchall()
   conn.close()
 
   valid_entries = []
 
-  for entry_id, name, category, db_species, db_subs in all_entries:
+  for entry_id, name, category, entry_gender, db_species, db_subs in all_entries:
     db_species_list = [s.strip() for s in db_species.split(",")]
     db_subs_list = [s.strip() for s in db_subs.split(",")]
 
@@ -58,12 +63,11 @@ def generate_name(
       ):
         valid_entries.append({"name": name, "category": category})
 
-  # Pre-calculate pools to support "any" format selection intelligently
   first_pool = [e for e in valid_entries if e["category"] == "first_name"]
   second_pool = [e for e in valid_entries if e["category"] == "second_name"]
   full_pool = [e for e in valid_entries if e["category"] == "full_name"]
 
-  # If format is "any", randomly choose among formats that actually have matching names
+  # If format is "any", randomly choose among formats that have matching names
   if format_type == "any":
     available_modes = []
     if first_pool:
@@ -81,7 +85,7 @@ def generate_name(
       return "⚠️ No matching names found for these criteria."
     format_type = random.choice(available_modes)
 
-  # --- SELECTION LOGIC BASED ON THE 5 FORMAT TYPES ---
+  # --- SELECTION LOGIC ---
   if format_type == "first_name":
     if not first_pool:
       return "⚠️ No matching First Name found for these criteria."
