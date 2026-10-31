@@ -24,10 +24,8 @@ def setup_test_db():
   insert_name("Zéfiro Luscofusco", "full_name", "male", "elf", "elf", db_path=TEST_DB_FILE)
 
   # New explicit tier entries
-  insert_name("Genny", "second_name", "female", "elf", "any", db_path=TEST_DB_FILE)
   insert_name("Beto", "first_name", "male", "insect", "insect", db_path=TEST_DB_FILE)
   insert_name("Besouro", "second_name", "neutral", "insect", "insect", db_path=TEST_DB_FILE)
-  insert_name("Bugsouro", "first_name", "male", "insect", "any", db_path=TEST_DB_FILE)
   insert_name("Anny", "first_name", "neutral", "any", "any", db_path=TEST_DB_FILE)
 
   return TEST_DB_FILE

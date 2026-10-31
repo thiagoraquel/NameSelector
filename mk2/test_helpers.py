@@ -123,16 +123,19 @@ def get_matching_pool_with_flags(
     db_species_list = [s.strip() for s in sp.split(",")]
     db_subs_list = [s.strip() for s in sub.split(",")]
 
-    # Tier classifications matching engine logic
     is_global = "any" in db_species_list and "any" in db_subs_list
 
     is_species_generic = False
     if not is_global:
       for ds in db_species_list:
-        if (ds in db_subs_list and ds != "any") or (
-            "any" in db_subs_list and ds != "any"
-        ):
-          is_species_generic = True
+        if (ds in db_subs_list and ds != "any") or ("any" in db_subs_list and ds != "any"):
+          for slot in user_slots:
+            if slot["species"] == ds or slot["species"] == "any":
+              # Sub-species must be "any" or match the species macro-family
+              if slot["sub_species"] == "any" or slot["sub_species"] == ds:
+                is_species_generic = True
+                break
+        if is_species_generic:
           break
 
     is_subspecies_specific = False
@@ -140,7 +143,6 @@ def get_matching_pool_with_flags(
       if matches_taxonomy(db_species_list, db_subs_list, user_slots):
         is_subspecies_specific = True
 
-    # Apply checkbox filters
     if is_global and not allow_global:
       continue
     if is_species_generic and not allow_species_generic:
@@ -148,11 +150,7 @@ def get_matching_pool_with_flags(
     if is_subspecies_specific and not allow_subspecies_specific:
       continue
 
-    # Final eligibility check
     if is_global or is_species_generic or is_subspecies_specific:
-      if is_global or is_species_generic or matches_taxonomy(
-          db_species_list, db_subs_list, user_slots
-      ):
-        pool.append(name)
+      pool.append(name)
 
   return pool

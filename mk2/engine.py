@@ -36,13 +36,16 @@ def generate_name(
     is_global = "any" in db_species_list and "any" in db_subs_list
 
     is_species_generic = False
-    if not is_global and "any" in db_subs_list:
+    if not is_global:
       for ds in db_species_list:
-        if ds == "any" or any(
-            slot["species"] == ds or slot["species"] == "any"
-            for slot in user_slots
-        ):
-          is_species_generic = True
+        if (ds in db_subs_list and ds != "any") or ("any" in db_subs_list and ds != "any"):
+          for slot in user_slots:
+            if slot["species"] == ds or slot["species"] == "any":
+              # Sub-species must be "any" or match the species macro-family
+              if slot["sub_species"] == "any" or slot["sub_species"] == ds:
+                is_species_generic = True
+                break
+        if is_species_generic:
           break
 
     is_subspecies_specific = False
