@@ -7,6 +7,7 @@ from test_helpers import (
   get_matching_pool,
   is_valid_format_any_result,
   get_any_format_pool,
+  get_matching_pool_with_flags,
 )
 
 
@@ -211,6 +212,110 @@ def run_tests():
     expected="Any valid name from the DB",
     actual=res,
     debug_pool=neutral_pool,
+  )
+
+  # ==========================================
+  # NEW ELF & NEGATIVE TAXONOMY TESTS
+  # ==========================================
+
+  # Test 15: Generate any species name (species = 'any'), format single_mode
+  cat, gender, slots = "single_mode", "any", [{"species": "any", "sub_species": "any"}]
+  res = generate_name(cat, gender, slots, db_path=db)
+  pool = get_matching_pool(db, "first_name", gender, slots) + get_matching_pool(db, "second_name", gender, slots)
+  assert_test(res in pool, "Generate any species name (species='any')", expected=f"One of {pool}", actual=res, debug_pool=pool)
+
+  # Test 16: Generate any subspecies name (subspecies = 'any') given a specific species, format single_mode (insects)
+  cat, gender, slots = "single_mode", "any", [{"species": "insect", "sub_species": "any"}]
+  res = generate_name(cat, gender, slots, db_path=db)
+  pool = get_matching_pool(db, "first_name", gender, slots) + get_matching_pool(db, "second_name", gender, slots)
+  assert_test(res in pool, "Generate any subspecies name for insect species", expected=f"One of {pool}", actual=res, debug_pool=pool)
+
+  # Test 17: Generate specific species name, format single mode for elfs
+  cat, gender, slots = "single_mode", "any", [{"species": "elf", "sub_species": "elf"}]
+  res = generate_name(cat, gender, slots, db_path=db)
+  pool = get_matching_pool(db, "first_name", gender, slots) + get_matching_pool(db, "second_name", gender, slots)
+  assert_test(res in pool, "Generate specific species name single mode for elfs", expected=f"One of {pool}", actual=res, debug_pool=pool)
+
+  # Test 18: Generate name given a specific species but a subspecies of another species (should return no match)
+  cat, gender, slots = "single_mode", "any", [{"species": "elf", "sub_species": "spider"}]
+  res = generate_name(cat, gender, slots, db_path=db)
+  assert_test(res.startswith("⚠️"), "Mismatch taxonomy returns no match warning", expected="Warning starting with ⚠️", actual=res, debug_pool=get_matching_pool(db, cat, gender, slots))
+
+  # Test 19: Generate name given a specific species with non-existent/mismatched subspecies
+  cat, gender, slots = "single_mode", "any", [{"species": "elf", "sub_species": "nonexistent"}]
+  res = generate_name(cat, gender, slots, db_path=db)
+  assert_test(res.startswith("⚠️"), "Invalid subspecies returns no match warning", expected="Warning starting with ⚠️", actual=res, debug_pool=get_matching_pool(db, cat, gender, slots))
+
+  # Test 20: Generate name given a specific species with subspecies with the same name as the species (elfs)
+  cat, gender, slots = "first_name", "female", [{"species": "elf", "sub_species": "elf"}]
+  res = generate_name(cat, gender, slots, db_path=db)
+  pool = get_matching_pool(db, cat, gender, slots)
+  assert_test(res in pool, "Generate female elf with elf subspecies first name (elf/elf match)", expected=f"One of {pool}", actual=res, debug_pool=pool)
+
+# Test 21: Generate species-generic insect name (sub_species='any' matching broad category)
+  cat, gender, slots = "single_mode", "any", [{"species": "insect", "sub_species": "any"}]
+  res = generate_name(cat, gender, slots, db_path=db)
+  pool = get_matching_pool(db, cat, gender, slots)
+  assert_test(
+      res in pool, 
+      "Generate species-generic insect name (sub_species='any')", 
+      expected=f"One of {pool}", 
+      actual=res, 
+      debug_pool=pool
+  )
+
+# Test 21-b: Generate species-generic insect name (sub_species='insect' matching broad category)
+  cat, gender, slots = "single_mode", "any", [{"species": "insect", "sub_species": "insect"}]
+  res = generate_name(cat, gender, slots, db_path=db)
+  pool = get_matching_pool(db, cat, gender, slots)
+  assert_test(
+      res in pool, 
+      "Generate species-generic insect name (sub_species='insect')", 
+      expected=f"One of {pool}", 
+      actual=res, 
+      debug_pool=pool
+  )
+
+
+# Test 22: Generate No Match Scenario (impossible filter combination)
+  res = generate_name("first_name", "male", [{"species": "beastkin", "sub_species": "rabbit"}], db_path=db)
+  assert_test(res.startswith("⚠️"), "No match scenario returns warning", expected="Warning starting with ⚠️", actual=res, debug_pool=get_matching_pool(db, "first_name", "male", [{"species": "beastkin", "sub_species": "rabbit"}]))
+
+# Test 23: Generate Invalid Format Scenario (invalid format type)
+  res = generate_name("invalid_format_type", "any", wildcard_slot, db_path=db)
+  assert_test(
+      res.startswith("⚠️"), 
+      "Invalid format type returns warning", 
+      expected="Warning starting with ⚠️", 
+      actual=res,
+      debug_pool=get_matching_pool(db, "invalid_format_type", "any", wildcard_slot)
+  )
+
+# --- CHECKBOX TIER TEST: Mantis with Global + Sub-species only (No Species-Generic) ---
+  cat, gender, slots = "any", "any", [{"species": "insect", "sub_species": "mantis"}]
+  
+  # With allow_species_generic=False, "Beto" or "Besouro" (insect/insect) should be excluded, 
+  # while "Louva Deusa" (insect/mantis) and "Anny" (any/any) should be allowed.
+  res = generate_name(
+      cat, gender, slots, 
+      allow_global=True, 
+      allow_species_generic=False, 
+      allow_subspecies_specific=True, 
+      db_path=db
+  )
+  
+  # Compute expected pool with these exact flags
+  allowed_pool = get_matching_pool_with_flags(
+      db, cat, gender, slots, 
+      allow_global=True, allow_species_generic=False, allow_subspecies_specific=True
+  )
+  
+  assert_test(
+      is_valid_format_any_result(db, gender, slots, res),
+      "Mantis generation with Species-Generic disabled",
+      expected="A valid name excluding broad insect-generic names",
+      actual=res,
+      debug_pool=allowed_pool
   )
 
   print("\n----------------------------------------")

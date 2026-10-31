@@ -11,10 +11,17 @@ def get_matching_pool(db_path, category, gender, user_slots):
   rows = cursor.fetchall()
   conn.close()
 
+  # Map engine modes or wildcards to valid DB categories
+  if category == "single_mode":
+    target_categories = ["first_name", "second_name"]
+  elif category == "any":
+    target_categories = ["first_name", "second_name", "full_name"]
+  else:
+    target_categories = [category]
+
   pool = []
   for name, cat, g, sp, sub in rows:
-    # If category is 'any', accept all categories; otherwise match exact category
-    if category != "any" and cat != category:
+    if cat not in target_categories:
       continue
     
     gender_match = (
@@ -76,3 +83,76 @@ def get_any_format_pool(db_path, gender, user_slots):
   
   # Return unique set of all possible generation outcomes
   return list(set(firsts + seconds + fulls + combinations))
+
+def get_matching_pool_with_flags(
+    db_path,
+    category,
+    gender,
+    user_slots,
+    allow_global=True,
+    allow_species_generic=True,
+    allow_subspecies_specific=True,
+):
+  """Computes valid names respecting individual checkbox inclusion flags (tiers)."""
+  conn = sqlite3.connect(db_path)
+  cursor = conn.cursor()
+  cursor.execute("SELECT name, category, gender, species, sub_species FROM names")
+  rows = cursor.fetchall()
+  conn.close()
+
+  if category == "single_mode":
+    target_categories = ["first_name", "second_name"]
+  elif category == "any":
+    target_categories = ["first_name", "second_name", "full_name"]
+  else:
+    target_categories = [category]
+
+  pool = []
+  for name, cat, g, sp, sub in rows:
+    if cat not in target_categories:
+      continue
+
+    gender_match = (
+        gender.lower() in ["any", "neutral"]
+        or g.lower() in ["any", "neutral"]
+        or g.lower() == gender.lower()
+    )
+    if not gender_match:
+      continue
+
+    db_species_list = [s.strip() for s in sp.split(",")]
+    db_subs_list = [s.strip() for s in sub.split(",")]
+
+    # Tier classifications matching engine logic
+    is_global = "any" in db_species_list and "any" in db_subs_list
+
+    is_species_generic = False
+    if not is_global:
+      for ds in db_species_list:
+        if (ds in db_subs_list and ds != "any") or (
+            "any" in db_subs_list and ds != "any"
+        ):
+          is_species_generic = True
+          break
+
+    is_subspecies_specific = False
+    if not is_global and not is_species_generic:
+      if matches_taxonomy(db_species_list, db_subs_list, user_slots):
+        is_subspecies_specific = True
+
+    # Apply checkbox filters
+    if is_global and not allow_global:
+      continue
+    if is_species_generic and not allow_species_generic:
+      continue
+    if is_subspecies_specific and not allow_subspecies_specific:
+      continue
+
+    # Final eligibility check
+    if is_global or is_species_generic or is_subspecies_specific:
+      if is_global or is_species_generic or matches_taxonomy(
+          db_species_list, db_subs_list, user_slots
+      ):
+        pool.append(name)
+
+  return pool
