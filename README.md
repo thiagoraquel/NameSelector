@@ -8,19 +8,68 @@ The system focuses on **preserving 100% of the human curation's aesthetic integr
 ---
 
 ## ⚙️ General System Architecture
-1. **Data Layer:** The core of the project. Stores curated names associated with strict metadata (gender, name category, and taxonomic linkages).
-2. **Decision Layer:** Receives input parameters specified by the user (e.g., individual type, species, sub-species, gender, desired format).
+1. **Data Layer:** The core of the project. Stores curated names associated with strict metadata (gender, name category, and etc).
+2. **Decision Layer:** Receives input parameters specified by the user (e.g., individual type, species, sub-species, gender, desired format, checkboxes).
 3. **Algorithm Layer:** Performs probabilistic selection within the filtered scope, cross-referencing taxonomy and hybridization rules.
 
 ---
 
-## 📐 Rules of Definition and Data Structure
+### 1. 📐 Data Layer
+The database strictly stores names in this exact way:
 
-### 1. Name Categories (Storage Format)
-The database strictly stores names across three main categories:
-* **First Name:** A single-word entry.
-* **Second Name:** A single-word entry (surname or cognomen).
-* **Full Name:** An atomic, single-line entry containing **strictly two words**. It is treated as a complete block on its own, avoiding automatic decomposition that would artificially inflate the first/second name pools.
+#### Format:
+**First Name:** A single-word entry.
+**Second Name:** A single-word entry (surname or cognomen).
+**Compound Name:** An atomic, single-line entry containing **strictly two or three words**. It is treated as a complete block on its own.
+
+#### Gender:
+**Male:** A masculine entry.
+**Female:** A feminine entry.
+**Neutral:** A neutral entry.
+
+#### Species:
+At least one species and at most two. There is no "Single Species" or "Double Species" category, it comes as a list of either a single species or two.
+**Species:** ["bug"].
+
+##### Special case:
+**Any:** There may be names with the "any" tag on species. That is a specific case where the species and subspecies will also be "any".
+
+#### Subspecies:
+At least one subspecies and at most two. There is no "Single Subspecies" or "Double Subspecies" category, it comes as a list of either a single subspecies or two.
+**Subspecies:** ["mantis"].
+
+##### Special cases:
+**Any:** There may be names with the "any" tag on subspecies. That is a specific case where the species and subspecies will also be "any".
+**Species And Subspecies Identical:** There may be names where the subspecies tag is the exact same as the species. These are generic names. An species:bug, subspecies:bug name is a generic name usable by all bug subspecies. However elfs don't have subspecies, so an species:elf, subspecies:elf name is only usable by elfs, being simoultaneously general for all elfs and specific for only elfs.
+
+### 2. 🧬 Selection Rules For Generation With Interface
+
+#### Format
+
+**First Name:** Generates a first name.
+**Second Name:** Generates a second name.
+**Compound Name:** Generates a compound name.
+**Atomic Name:** Generates either a first name or a second name.
+**Single Name:** Generates either a first name, a second name or a compound name.
+**Paired Name:** Generates a first name + second name.
+**Full Name:** Generates either a first name + second name or a compound name.
+**Any Name:** Generates either a first name, a second name, a compound name, or a first name + second name.
+**Random:** Generates a name with one of the formats above chosen at random.
+
+#### Gender
+
+**Male:** Generates a male name.
+**Female:** Generates a female name.
+**Neutral:** Generates a neutral name.
+**Mal&Neutral:** Generates a male or neutral name.
+**Femal&Neutral:** Generates a female or neutral name.
+
+#### Species
+There is no fixed number of species, and more may be added, but there is a special case.
+**Any:** There may be names with the "any" tag on species. That is a specific case where the species and subspecies will also be "any". Such names are universal names used by any species. These universal names may not be included in generation via it's respective checkbox on the interface.
+
+#### Subspecies
+Every species may have at least one subspecies specific to them.
 
 ### 2. Generation Rules (Selector Output)
 Based on the system's decision:
