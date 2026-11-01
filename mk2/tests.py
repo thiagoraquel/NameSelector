@@ -41,6 +41,7 @@ def run_tests():
     if debug_pool is not None:
       print(f"     🔍 [Debug Pool Sample]: {format_debug_pool(debug_pool)}")
 
+  # old, should delete later, but keeping for now for legacy tests
   wildcard_slot = [{"species": "any", "sub_species": "any"}]
 
   # --- TEST 1: ADD TEST (Insertion check) ---
@@ -418,6 +419,67 @@ def run_tests():
     expected="Warning starting with ⚠️",
     actual=res,
     debug_pool=get_matching_pool_with_flags(db, cat, gender, slots, allow_global=False, allow_species_generic=True, allow_subspecies_specific=True)
+  )
+
+  # ==========================================
+  # CHECKBOX PERMUTATION TESTS FOR INSECTS (sub_species = 'any')
+  # ==========================================
+  insect_slots = [{"species": "insect", "sub_species": "any"}]
+
+  permutations = [
+      (True, True, True, "All Checkboxes ON (Global + SpeciesGen + SubSpec)"),
+      (True, True, False, "Global=T, SpeciesGen=T, SubSpec=F"),
+      (True, False, True, "Global=T, SpeciesGen=F, SubSpec=T"),
+      (True, False, False, "Global=T, SpeciesGen=F, SubSpec=F (Only Global)"),
+      (False, True, True, "Global=F, SpeciesGen=T, SubSpec=T"),
+      (False, True, False, "Global=F, SpeciesGen=T, SubSpec=F (Only SpeciesGen)"),
+      (False, False, True, "Global=F, SpeciesGen=F, SubSpec=T"),
+      (False, False, False, "All Checkboxes OFF (Expected: No Match)"),
+  ]
+
+  for g_flag, sg_flag, ss_flag, label in permutations:
+    res = generate_name("single_mode", "any", insect_slots, allow_global=g_flag, allow_species_generic=sg_flag, allow_subspecies_specific=ss_flag, db_path=db)
+    expected_pool = (
+        get_matching_pool_with_flags(db, "first_name", "any", insect_slots, allow_global=g_flag, allow_species_generic=sg_flag, allow_subspecies_specific=ss_flag) +
+        get_matching_pool_with_flags(db, "second_name", "any", insect_slots, allow_global=g_flag, allow_species_generic=sg_flag, allow_subspecies_specific=ss_flag)
+    )
+    
+    if expected_pool:
+      assert_test(
+          res in expected_pool,
+          f"Insect Checkbox Permutation -> {label}",
+          expected=f"One of {expected_pool}",
+          actual=res,
+          debug_pool=expected_pool
+      )
+    else:
+      assert_test(
+          res.startswith("⚠️"),
+          f"Insect Checkbox Permutation -> {label}",
+          expected="Warning starting with ⚠️",
+          actual=res,
+          debug_pool=expected_pool
+      )
+
+  # --- TEST 27: Global + Sub-species Specific ON, Species-Generic OFF (Spider query) ---
+  cat, gender, slots = "single_mode", "any", [{"species": "insect", "sub_species": "spider"}]
+  res = generate_name(
+      cat, gender, slots,
+      allow_global=True,
+      allow_species_generic=False,
+      allow_subspecies_specific=True,
+      db_path=db
+  )
+  pool = (
+      get_matching_pool_with_flags(db, "first_name", gender, slots, allow_global=True, allow_species_generic=False, allow_subspecies_specific=True) +
+      get_matching_pool_with_flags(db, "second_name", gender, slots, allow_global=True, allow_species_generic=False, allow_subspecies_specific=True)
+  )
+  assert_test(
+      res in pool,
+      "Global + Sub-species Specific ON (Species-Generic OFF) for spider",
+      expected=f"One of {pool}",
+      actual=res,
+      debug_pool=pool,
   )
 
   # Test 20: Generate name given a specific species with non-existent/mismatched subspecies

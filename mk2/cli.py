@@ -1,7 +1,5 @@
 from database import delete_name, get_all_entries, get_metadata_lists, insert_name
 from engine import generate_name
-from tests import run_tests
-
 
 def prompt_choice(prompt_text, options):
   print(prompt_text)
@@ -87,11 +85,11 @@ def view_all_entries_cli():
 
 def generate_cli():
   print("\n--- Generate a Name ---")
-  formats = ["single", "double"]
+  formats = ["single", "double"] #este está ultrapassado
   format_type = prompt_choice("Select Format:", formats)
 
   genders, _, _ = get_metadata_lists()
-  gender = prompt_choice("Select Gender Target:", genders + ["any"])
+  gender = prompt_choice("Select Gender Target:", genders + ["any"]) #Aqui também
 
   ind_types = ["common", "hybrid"]
   ind_type = prompt_choice("Select Individual Type:", ind_types)
