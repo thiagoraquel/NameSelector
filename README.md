@@ -3,46 +3,52 @@
 ## 📖 Introduction
 This project consists of a **mix-and-match name selection system** using manually curated names for worldbuilding exercises (creating fictional universes, species, races, and locations). 
 
-The system focuses on **preserving 100% of the human curation's aesthetic integrity** by using a structured database with rich metadata to combine names intelligently. It respects criteria such as gender, structural formatting, biological/cultural hierarchy, and hybridization.
+The system focuses on **preserving 100% of the human curation's aesthetic integrity** by using a structured database with simple metadata to combine names intelligently. It respects criteria such as gender, structural formatting, biological/cultural hierarchy, and hybridization.
 
 ---
 
 ## ⚙️ General System Architecture
 1. **Data Layer:** The core of the project. Stores curated names associated with strict metadata (gender, name category, and etc).
 2. **Decision Layer:** Receives input parameters specified by the user (e.g., individual type, species, sub-species, gender, desired format, checkboxes).
-3. **Algorithm Layer:** Performs probabilistic selection within the filtered scope, cross-referencing taxonomy and hybridization rules.
+3. **Algorithm Layer:** Currently this code does not need or has implemented an algorithm layer, given the restrictions will be validated, the selected name will be randomized from all pools it can draw from.
 
 ---
 
 ### 1. 📐 Data Layer
 The database strictly stores names in this exact way:
 
+#### Name:
+The name data that will be used for name selection.
+
 #### Format:
 **First Name:** A single-word entry.
 **Second Name:** A single-word entry (surname or cognomen).
-**Compound Name:** An atomic, single-line entry containing **strictly two or three words**. It is treated as a complete block on its own.
+**Compound Name:** An atomic, single-line entry containing **strictly two or three words separated by spaces**. It is treated as a complete block on its own.
 
 #### Gender:
 **Male:** A masculine entry.
 **Female:** A feminine entry.
-**Neutral:** A neutral entry.
+**Neutral:** A neutral entry (for assexual/unissex/hermaphrodite names).
 
 #### Species:
-At least one species and at most two. There is no "Single Species" or "Double Species" category, it comes as a list of either a single species or two.
+Each entry has one species.
 **Species:** ["bug"].
 
 ##### Special case:
 **Any:** There may be names with the "any" tag on species. That is a specific case where the species and subspecies will also be "any".
 
 #### Subspecies:
-At least one subspecies and at most two. There is no "Single Subspecies" or "Double Subspecies" category, it comes as a list of either a single subspecies or two.
+Each entry has one subspecies.
 **Subspecies:** ["mantis"].
 
 ##### Special cases:
 **Any:** There may be names with the "any" tag on subspecies. That is a specific case where the species and subspecies will also be "any".
-**Species And Subspecies Identical:** There may be names where the subspecies tag is the exact same as the species. These are generic names. An species:bug, subspecies:bug name is a generic name usable by all bug subspecies. However elfs don't have subspecies, so an species:elf, subspecies:elf name is only usable by elfs, being simoultaneously general for all elfs and specific for only elfs.
+**Species And Subspecies Identical:** There may be names where the subspecies tag is the exact same as the species. These are generic names for that species, usable by any subspecies of that species. For example, subspecies:"bug".
+**Otherwise:** Subspecies will be different from "any" and it's species name.
 
 ### 2. 🧬 Selection Rules For Generation With Interface
+
+In order for a name to be selected, all parameters must be chosen and be valid via the GUI.
 
 #### Format
 
@@ -65,55 +71,30 @@ At least one subspecies and at most two. There is no "Single Subspecies" or "Dou
 **Femal&Neutral:** Generates a female or neutral name.
 
 #### Species
-There is no fixed number of species, and more may be added, but there is a special case.
-**Any:** There may be names with the "any" tag on species. That is a specific case where the species and subspecies will also be "any". Such names are universal names used by any species. These universal names may not be included in generation via it's respective checkbox on the interface.
+By default starts blank.
+**Specific Species:** Generation will only choose names from that species. Only existing species in the database will be shown. If a species is chosen, by default it sets subspecies to the same name as species if it exists, otherwise, sets subspecies to "any".
+**Any:** Generation will choose names from any species. By default sets subspecies to "any" if chosen.
 
 #### Subspecies
-Every species may have at least one subspecies specific to them.
+By default starts blank.
+**Specific Subspecies:** Generation will only choose names from that subspecies. Only existing subspecies of the selected species in the database will be shown.
+**Same As Species:** Generation will only choose generic names usable by any subspecies from that species, and no names from specific subspecies.
+**Any:** Generation will choose names from any subspecies of that species, including generic names (unless marked off on checkboxes). 
 
-### 2. Generation Rules (Selector Output)
-Based on the system's decision:
-* **One-word names:** Generated **exclusively** using options from the *First Name* category.
-* **Two-word names:** The selector chooses between two paths:
-  1. Combining a `First Name` + `Second Name`.
-  2. Selecting a pre-registered, atomic `Full Name` directly.
+#### Checkboxes
+At least one of the three checkboxes below must be selected for selection, and the system does not allow for all three to be toggled off simultaneously. There is no guarantee that a name may be generated with only one checkbox on or even three (although with three on, a universal name will always be generated).
 
-### 3. Genders
-Each name entry is linked to a specific gender, extensible as worldbuilding grows:
-* Male
-* Female
-* Hermaphrodite
-* Neutral (undetermined / unisex)
+**Include Universal Names:** Generation will include or exclude universal names. Universal names are names usable by any species. They are the entries with both species:"any" and subspecies:"any". Entries with "any" will always come with it on species and subspecies and it's the only case where "any" appears in whatever way, meaning it always comes coupled on species and subspecies.
 
----
+**Include Species Generic Names:** Generation will include or exclude species generic names. Species generic names are names usable by any subspecies of the selected species. They are entries where species and subspecies have the same name, like `species:"bug"` and `subspecies:"bug"`. 
+> *Base Case for Single-Tier Races (like Elfs):* Races without subspecies are stored as `species:"elf"` and `subspecies:"elf"`, meaning their names fall under this tier. This checkbox acts as the master switch for that species' base names: if marked off, no base names are selected from that species, independent of the subspecies checkbox.
 
-## 🧬 Taxonomic Hierarchy, Scope, and Cardinality
+**Include Subspecies Specific Names:** Generation will include or exclude subspecies specific names. Subspecies specific names are entries where species and subspecies differ in name, like `species:"bug"` and `subspecies:"mantis"`, targeting exclusive sub-group variations.
 
-Each name registered in the database must be linked to **one or two Species (macro)** and **one or two Sub-species**. This allows modeling everything from simple names to heroic titles or full names exclusive to specific hybrids (e.g., a name with 1 species and 2 sub-species like *grasshopper + gnat*, or 2 species and 2 sub-species like *fox + butterfly*).
+#### Individual Mode
+User must choose between one of two modes for name generation.
 
-### The `any` Wildcard:
-* **Sub-species as `"any"`:** Any sub-species belonging to that macro species can use the name.
-* **Species as `"any"`:** The name is universal and can be used by **literally any individual**, including in hybrid contexts.
-
----
-
-## 🔄 Validation Rules and Cross-Attribution
-
-A name can be assigned to an individual as long as the taxonomic components of the name **contain** the sub-species/species corresponding to that individual.
-
-* **Broad Access Rule:** A hybrid (e.g., *Praying Mantis + Spider*) can legitimately use:
-  1. Generic names (`any`).
-  2. Names belonging exclusively to the *Praying Mantis* sub-species.
-  3. Names belonging exclusively to the *Spider* sub-species.
-  4. Names exclusive to the hybrid fusion *Praying Mantis + Spider*.
-
----
-
-## ⚗️ Selection Logic: Standard Individuals vs. Hybrids (Including Pure Hybrids)
-
-The Decision Layer handles different input profiles for generation:
-
-1. **Standard Individual:** The user configures the selector with a single Species/Sub-species slot. The algorithm searches for names compatible only with that single scope and generics (`any`).
-2. **Hybrid Individual (Mixed or Pure):** The user configures the selector providing **two slots** for Species/Sub-species.
-   * **Mixed Hybrids (Different species):** E.g., *Spider + Ant*. The system can search for names exclusive to that exact combination or draw independent parts from each parental half.
-   * **Pure Hybrids (Same sub-species duplicated):** E.g., *Spider + Spider*. Represents rare individuals with unique powers. In the data layer, they do not require a separate structure: the selector processes both slots as Spider, drawing names from that sub-species or generics. If a pure combination makes no sense in lore (e.g., *Human + Human*), the system simply degrades selection to the behavior of a single-gene standard individual.
+**Standard:** One species and subspecies must be selected. Generation will select as normal.
+**Hybrid:** Two species and subspecies must be selected. Generation will simply unite the pool of both species/subspecies generated. If either of the two species is set to "any", put all species and subspecies to "any". If an option other than "any" is selected, put the rest to blank so user may select what he wants and isn't locked into "any" forever. 
+If both species and subspecies for the two slots are the same, generation will work as if it's a standard name. The case is called within worldbuilding as "pure hybrid".
+Otherwise, the most common case of all, where the species/subspecies differ is called "mixed hybrid".
